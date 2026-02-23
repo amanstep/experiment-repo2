@@ -22,7 +22,6 @@ jobs:
   #     tag: "${{ github.event.inputs.tag }}"
 
   assets:
-    needs: release
     runs-on: ubuntu-latest
     permissions:
       contents: write
