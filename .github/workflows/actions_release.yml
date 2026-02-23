@@ -11,15 +11,15 @@ permissions:
   contents: read
 
 jobs:
-  release:
-    permissions:
-      actions: read
-      id-token: write
-      contents: write
+  # release:
+  #   permissions:
+  #     actions: read
+  #     id-token: write
+  #     contents: write
 
-    uses: step-security/reusable-workflows/.github/workflows/actions_release.yaml@v1
-    with:
-      tag: "${{ github.event.inputs.tag }}"
+  #   uses: step-security/reusable-workflows/.github/workflows/actions_release.yaml@v1
+  #   with:
+  #     tag: "${{ github.event.inputs.tag }}"
 
   assets:
     needs: release
