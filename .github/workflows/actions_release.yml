@@ -11,41 +11,41 @@ permissions:
   contents: write
 
 jobs:
-  # release:
-  #   permissions:
-  #     actions: read
-  #     id-token: write
-  #     contents: write
-
-  #   uses: step-security/reusable-workflows/.github/workflows/actions_release.yaml@v1
-  #   with:
-  #     tag: "${{ github.event.inputs.tag }}"
-
   release:
-    runs-on: ubuntu-latest
     permissions:
+      actions: read
+      id-token: write
       contents: write
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
-        with:
-          egress-policy: audit
 
-      - name: Check out source code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-        with:
-          fetch-depth: 0
+    uses: step-security/reusable-workflows/.github/workflows/actions_release.yaml@feat/action_release
+    with:
+      tag: "${{ github.event.inputs.tag }}"
 
-      - name: Create tag
-        run: |
-          TAG="${{ github.event.inputs.tag }}"
-          git tag "$TAG"
-          git push origin "$TAG"
+  # release:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: write
+  #   steps:
+  #     - name: Harden the runner (Audit all outbound calls)
+  #       uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+  #       with:
+  #         egress-policy: audit
 
-      - name: Create release
-        run: gh release create "${{ github.event.inputs.tag }}" --generate-notes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Check out source code
+  #       uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+  #       with:
+  #         fetch-depth: 0
+
+  #     - name: Create tag
+  #       run: |
+  #         TAG="${{ github.event.inputs.tag }}"
+  #         git tag "$TAG"
+  #         git push origin "$TAG"
+
+  #     - name: Create release
+  #       run: gh release create "${{ github.event.inputs.tag }}" --generate-notes
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   assets:
     needs: release
