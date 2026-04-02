@@ -1,155 +1,65 @@
-# tfclean
+[![StepSecurity Maintained Action](https://raw.githubusercontent.com/step-security/maintained-actions-assets/main/assets/maintained-action-banner.png)](https://docs.stepsecurity.io/actions/stepsecurity-maintained-actions)
 
-tfclean is a tool for cleaning up Terraform configuration files by automatically removing applied moved, import, and removed blocks. This helps maintain clean and readable Terraform configurations by eliminating blocks that have already served their purpose.
+# yamllint-github-action
 
-### Using go install
+Yamllint GitHub Actions allow you to execute `yamllint` command within GitHub Actions.
 
-```bash
-# Install specified version
-go install github.com/step-security/tfclean/cmd/tfclean@v0.0.13
+The output of the actions can be viewed from the Actions tab in the main repository view. If the actions are executed on a pull request event, a comment may be posted on the pull request.
 
-# Install latest version
-go install github.com/step-security/tfclean/cmd/tfclean@latest
-```
+Yamllint GitHub Actions is a single GitHub Action that can be executed on different directories depending on the content of the GitHub Actions YAML file.
 
-### Using aqua
+## Success Criteria
 
-[aqua](https://aquaproj.github.io/) is a declarative CLI Version Manager. You can install tfclean using aqua:
-
-```bash
-aqua g -i step-security/tfclean
-```
-
-Or add to your `aqua.yaml`:
-
-```yaml
-registries:
-  - type: standard
-    ref: v4.292.0 # renovate: depName=aquaproj/aqua-registry
-packages:
-  - name: step-security/tfclean@v0.7.0  # Use the latest version
-```
-
-Then run:
-
-```bash
-aqua i
-```
-
-### Using GitHub Actions
-
-You can use the official GitHub Action to install tfclean in your workflows:
-
-```yaml
-- uses: step-security/tfclean@v1
-  with:
-    version: 'latest' # Optional, defaults to latest
-```
-
-### Manual Installation
-
-Download the appropriate binary for your system from the [releases page](https://github.com/step-security/tfclean/releases).
+An exit code of `0` is considered a successful execution.
 
 ## Usage
 
-### Remove All Blocks
-
-Remove all moved/import/removed blocks regardless of their state:
-
-```bash
-tfclean /path/to/tffiles
-```
-
-### Remove Only Applied Blocks
-
-Remove only the blocks that have been successfully applied (requires access to tfstate).
-
-When using an S3 backend, you can omit `--tfstate`. tfclean auto-detects the state location by reading `terraform { backend "s3" { ... } }` from `.tf` files in the given directory.
-
-```bash
-# With S3 backend: auto-detect state from .tf files (--tfstate optional)
-AWS_PROFILE=your_profile tfclean /path/to/tffiles
-
-# Or specify state location explicitly
-AWS_PROFILE=your_profile tfclean --tfstate s3://path/to/tfstate /path/to/tffiles
-```
-
-## Features
-
-- **Smart Block Removal**
-  - [x] Removes moved blocks that have been applied
-  - [x] Removes import blocks that have been applied
-  - [x] Removes removed blocks that have been applied
-  - [x] Option to forcefully remove all moved/import/removed blocks
-
-- **Platform Support**
-  - Supports both x86_64 and ARM64 architectures
-  - Available for Linux and macOS
-
-## GitHub Actions Integration
-
-You can automate the cleanup of your Terraform configurations using GitHub Actions. Here's a complete example that creates pull requests for cleanup:
+The most common usage is to run `yamllint` on a file/directory. A comment will be posted to the pull request depending on the output of the Yamllint command being executed. This workflow can be configured by adding the following content to the GitHub Actions workflow YAML file.
 
 ```yaml
-name: tfclean
-
+name: 'Yamllint GitHub Actions'
 on:
-  push:
-    branches:
-      - main
-
-permissions:
-  pull-requests: write # Required for creating pull requests
-
+  - pull_request
 jobs:
-  tfclean:
-    runs-on: ubuntu-22.04
+  yamllint:
+    name: 'Yamllint'
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      
-      # Setup GitHub App token for PR creation
-      - uses: actions/create-github-app-token@v2
-        id: app-token
+      - name: 'Checkout'
+        uses: actions/checkout@v6
+      - name: 'Yamllint'
+        uses: step-security/yamllint-github-action@v3
         with:
-          app-id: ${{ secrets.GITHUB_APP_ID }}
-          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
-      
-      # Configure AWS credentials if using remote state
-      - uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: "aws_role_arn_for_oidc"
-          aws-region: "ap-northeast-1"
-      
-      # Install tfclean
-      - uses: step-security/tfclean@v0
-        
-      # Run tfclean
-      - run: tfclean --tfstate s3://path/to/tfstate /path/to/tffiles
-      
-      # Create PR if changes detected
-      - name: Check changes
-        id: diff-check
-        run: git diff --exit-code || echo "changes_detected=true" >> $GITHUB_OUTPUT
-      
-      - name: Create Pull Request
-        if: steps.diff-check.outputs.changes_detected == 'true'
-        run: |
-          branch_name=tfclean_$(date +"%Y%m%d%H%M")
-          git switch -c ${branch_name}
-          git config --global user.email "bot@example.com"
-          git config --global user.name "Terraform Cleanup Bot"
-          git add .
-          git commit -m "chore: auto-remove applied terraform blocks"
-          git push origin ${branch_name}
-          gh pr create --base main --head ${branch_name} --title "Auto-remove applied Terraform blocks" --body "This PR removes Terraform blocks that have been successfully applied."
+          yamllint_file_or_dir: '<yaml_file_or_dir>'
+          yamllint_strict: false
+          yamllint_comment: true
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-This workflow will:
-1. Run on pushes to the main branch
-2. Install and run tfclean
-3. Create a pull request if any blocks were removed
-4. Use GitHub App authentication for better security
+This was a simplified example showing the basic features of this Yamllint GitHub Actions.
 
-For the GitHub Actions integration, it's recommended to use a GitHub App for authentication instead of personal access tokens. This provides better security and more granular permissions control.
+## Inputs
+
+Inputs configure Yamllint GitHub Actions to perform lint action.
+
+| Parameter                    | Default | Description                                                                                                               |
+|------------------------------|---------|---------------------------------------------------------------------------------------------------------|
+| `yamllint_file_or_dir`       | .       | (Optional) The file or directory to run `yamllint` on (assumes that the directory contains *.yaml file) |
+| `yamllint_strict`            | `false` | (Optional) Yamllint strict option.                                  |
+| `yamllint_config_filepath`   | `empty` | (Optional) Path to a custom config file.                            |
+| `yamllint_config_datapath`   | `empty` | (Optional) Custom configuration (as YAML source).                   |
+| `yamllint_format`            | `auto`  | (Optional) Format for parsing.                                      |
+| `yamllint_comment`           | `false` | (Optional) Comment on GitHub pull requests, possible are true,false |
+
+## Outputs
+
+Outputs are used to pass information to subsequent GitHub Actions steps.
+
+* `yamllint_output` - The Yamllint build outputs.
+
+## Secrets
+
+Secrets are similar to inputs except that they are encrypted and only used by GitHub Actions. It's a convenient way to keep sensitive data out of the GitHub Actions workflow YAML file.
+
+* `GITHUB_ACCESS_TOKEN` - (Optional) The GitHub API token used to post comments to pull requests. Not required if the `yamllint_comment` input is set to `false`.
